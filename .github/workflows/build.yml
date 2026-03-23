@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:  # Actions sekmesinden manuel başlatmak için
+  workflow_dispatch:
 
 jobs:
   build:
@@ -17,34 +17,40 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Theos environment
+      - name: Install build dependencies (Ubuntu 24.04 fix)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential fakeroot rsync curl perl unzip git libplist-utils libncurses6 libncurses-dev zlib1g-dev
+
+      - name: Setup Theos
         uses: Randomblock1/theos-action@v1
         with:
           theos-dir: theos
-          theos-ref: master
-          sdks-ref: master
-          orion: false  # Bu tweak Swift içermiyor
-          cache-theos: true
-          cache-sdks: true
+          theos-src: https://github.com/theos/theos
+          theos-sdks: https://github.com/theos/sdks
+          theos-sdks-branch: master
+          orion: false
 
       - name: Build the DEB package
-        working-directory: ./Tweak  # Repo'da build Tweak klasöründe oluyor
+        working-directory: ./Tweak
         run: |
           make clean
           make package FINALPACKAGE=1
-          ls -la packages/  # Log için paketleri göster (debug)
+          ls -la packages/ || echo "No packages found - check Makefile/control"
 
       - name: Upload DEB as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: iOS_UEDumper_DEB
-          path: Tweak/packages/*.deb  # .deb dosyalarını buradan yakala
-          if-no-files-found: error     # Dosya yoksa hata versin
-          retention-days: 7            # Artifact'ı 7 gün tut (default 90, kısaltabilirsin)
+          path: Tweak/packages/*.deb
+          if-no-files-found: error
+          retention-days: 7
 
-      - name: Upload logs for debugging (optional)
-        if: always()  # Hata olsa bile log yükle
+      - name: Upload build logs (for debug)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
-          path: Tweak/*.log  # Varsa log dosyaları
+          path: |
+            Tweak/*.log
+            Tweak/theos.log  # varsa
