@@ -1,15 +1,15 @@
-name: Build Theos Tweak DEB with Artifact
+name: Build Theos Tweak DEB on macOS
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:  # Actions sekmesinden manuel çalıştır
+  workflow_dispatch:  # Manuel tetikleme için
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest  # macOS runner kullanıyoruz (Xcode ve toolchain hazır)
 
     steps:
       - name: Checkout repository (submodules dahil)
@@ -17,40 +17,35 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Ubuntu 24.04 dependencies kur (libtinfo5 alternatifi)
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y build-essential fakeroot rsync curl perl unzip git libplist-utils libncurses6 libncurses-dev zlib1g-dev
-
-      - name: Theos ortamını kur
+      - name: Theos ortamını kur (macOS uyumlu)
         uses: Randomblock1/theos-action@v1
         with:
           theos-dir: theos
           theos-src: https://github.com/theos/theos
           theos-sdks: https://github.com/theos/sdks
           theos-sdks-branch: master
-          orion: false
+          orion: false  # Swift yok, false bırak
 
       - name: DEB paketini build et
         working-directory: ./Tweak
         run: |
-          make clean || true  # clean hata verse bile devam
+          make clean || true
           make package FINALPACKAGE=1
           ls -la packages/ || echo "packages klasöründe .deb yok - Makefile/control kontrol et"
 
       - name: DEB artifact olarak yükle
         uses: actions/upload-artifact@v4
         with:
-          name: iOS_UEDumper_DEB
+          name: iOS_UEDumper_DEB_macOS
           path: Tweak/packages/*.deb
-          if-no-files-found: warn  # hata yerine uyarı ver, log'ları incele
+          if-no-files-found: warn
           retention-days: 7
 
       - name: Debug log'larını artifact olarak yükle (her zaman)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-debug-logs
+          name: build-debug-logs-macOS
           path: |
             Tweak/*.log
             Tweak/theos.log
