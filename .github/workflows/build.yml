@@ -22,14 +22,17 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Install ldid
+        run: |
+          brew install ldid
+          # ldid'nin nerede olduğunu sisteme tanıtıyoruz
+          echo "LDID_PATH=$(which ldid)" >> $GITHUB_ENV
+
       - name: Setup Theos
         run: |
           export THEOS=~/theos
           rm -rf $THEOS
           git clone --recursive https://github.com/theos/theos.git $THEOS
-          # ldid'yi sistem geneline kopyalayarak 'command not found' hatasını bitiriyoruz
-          sudo cp $THEOS/bin/ldid /usr/local/bin/ldid
-          sudo chmod +x /usr/local/bin/ldid
           echo "THEOS=$THEOS" >> $GITHUB_ENV
           echo "$THEOS/bin" >> $GITHUB_PATH
 
@@ -48,8 +51,8 @@ jobs:
           cd Tweak
           make clean
           
-          # Derleme sırasında ldid yolunu ve diğer parametreleri garantiye alıyoruz
-          make package FINALPACKAGE=1 LDID=/usr/local/bin/ldid THEOS_DEVICE_IP=
+          # Derleme sırasında ldid yolunu env'den alıp veriyoruz
+          make package FINALPACKAGE=1 LDID=$LDID_PATH THEOS_DEVICE_IP=
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
