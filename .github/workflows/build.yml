@@ -3,7 +3,7 @@ name: iOS UEDumper Build
 on:
   push:
     branches: [ "main", "master" ]
-  pull_request: |
+  pull_request:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
@@ -39,12 +39,9 @@ jobs:
 
       - name: Patch KittyMemory & Build
         run: |
-          # HATA DÜZELTME: writeData.hpp içindeki fazla 'fileName' parametresini siliyoruz
-          # Bu komut 'MemoryPatch::createWithBytes(fileName, offset,' kısmını 
-          # 'MemoryPatch::createWithBytes(offset,' olarak değiştirir.
+          # KittyMemory hata düzeltmesi (Hatalı parametreyi temizler)
           sed -i '' 's/MemoryPatch::createWithBytes(fileName, /MemoryPatch::createWithBytes(/g' deps/KittyMemory/KittyMemory/writeData.hpp
           
-          # Tweak klasörüne gir ve derle
           cd Tweak
           make clean
           make package FINALPACKAGE=1
