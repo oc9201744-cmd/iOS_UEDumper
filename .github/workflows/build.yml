@@ -5,24 +5,24 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # Actions sekmesinden manuel çalıştır
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository with submodules
+      - name: Checkout repository (submodules dahil)
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install required dependencies for Ubuntu 24.04
+      - name: Ubuntu 24.04 dependencies kur (libtinfo5 alternatifi)
         run: |
-          sudo apt-get update
+          sudo apt-get update -y
           sudo apt-get install -y build-essential fakeroot rsync curl perl unzip git libplist-utils libncurses6 libncurses-dev zlib1g-dev
 
-      - name: Setup Theos
+      - name: Theos ortamını kur
         uses: Randomblock1/theos-action@v1
         with:
           theos-dir: theos
@@ -31,26 +31,26 @@ jobs:
           theos-sdks-branch: master
           orion: false
 
-      - name: Build DEB package
+      - name: DEB paketini build et
         working-directory: ./Tweak
         run: |
-          make clean || true
+          make clean || true  # clean hata verse bile devam
           make package FINALPACKAGE=1
-          ls -la packages/ || echo "No .deb found - check Makefile/control file"
+          ls -la packages/ || echo "packages klasöründe .deb yok - Makefile/control kontrol et"
 
-      - name: Upload DEB Artifact
+      - name: DEB artifact olarak yükle
         uses: actions/upload-artifact@v4
         with:
           name: iOS_UEDumper_DEB
           path: Tweak/packages/*.deb
-          if-no-files-found: warn  # Hata yerine warn ver, log'ları incele
+          if-no-files-found: warn  # hata yerine uyarı ver, log'ları incele
           retention-days: 7
 
-      - name: Upload Debug Logs (always)
+      - name: Debug log'larını artifact olarak yükle (her zaman)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs
+          name: build-debug-logs
           path: |
             Tweak/*.log
             Tweak/theos.log
