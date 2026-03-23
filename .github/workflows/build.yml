@@ -25,22 +25,25 @@ jobs:
       - name: Setup Theos
         run: |
           export THEOS=~/theos
-          rm -rf $THEOS # Temiz kurulum garantisi
+          rm -rf $THEOS
           git clone --recursive https://github.com/theos/theos.git $THEOS
           echo "THEOS=$THEOS" >> $GITHUB_ENV
           echo "$THEOS/bin" >> $GITHUB_PATH
 
       - name: Install iOS SDK
         run: |
+          # SDK klasörünü temizle ve oluştur
           mkdir -p $THEOS/sdks
-          # En yaygın kullanılan iOS 14.5 SDK'sını çekiyoruz (Hızlı yöntem)
-          curl -L https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz -o iPhoneOS14.5.sdk.tar.xz
-          tar -xf iPhoneOS14.5.sdk.tar.xz -C $THEOS/sdks/
-          rm iPhoneOS14.5.sdk.tar.xz
+          # Sadece en güncel commit'i çekerek (depth 1) tüm SDK'ları hızlıca indiriyoruz
+          # Git clone, curl'deki yönlendirme hatalarını önler
+          git clone --depth 1 https://github.com/theos/sdks.git $THEOS/sdks/tmp_sdks
+          # Gereken SDK'yı ana klasöre taşı (Örn: 14.5)
+          mv $THEOS/sdks/tmp_sdks/*.sdk $THEOS/sdks/
+          rm -rf $THEOS/sdks/tmp_sdks
 
       - name: Build Project
         run: |
-          # Projenin Makefile'ına göre derleme yapıyoruz
+          # Makefile içindeki SDK ayarlarını kontrol eder ve derler
           make clean
           make package FINALPACKAGE=1
 
