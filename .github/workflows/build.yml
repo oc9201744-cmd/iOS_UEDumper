@@ -22,8 +22,8 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Setup Theos & ldid
- brew install ldid # ldid aracını macOS ortamına kurar
+      - name: Setup Theos
+        run: |
           export THEOS=~/theos
           rm -rf $THEOS
           git clone --recursive https://github.com/theos/theos.git $THEOS
@@ -39,18 +39,21 @@ jobs:
 
       - name: Patch KittyMemory & Build
         run: |
+          # ldid yolunu sisteme tanıtıyoruz
+          export PATH=$THEOS/bin:$PATH
+          
           # KittyMemory hata düzeltmesi
           sed -i '' 's/MemoryPatch::createWithBytes(fileName, /MemoryPatch::createWithBytes(/g' deps/KittyMemory/KittyMemory/writeData.hpp
           
           cd Tweak
           make clean
-          # ldid yolunu derleme sırasında özellikle belirtiyoruz
-          make package FINALPACKAGE=1
+          # ldid'yi Theos içinden kullanması için zorluyoruz
+          make package FINALPACKAGE=1 THEOS_DEVICE_IP=
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: iOS-UEDumper-Deb
+          name: iOS-UEDumper-Build
           path: |
             Tweak/packages/*.deb
             Tweak/.theos/obj/*.dylib
