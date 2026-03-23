@@ -1,0 +1,50 @@
+name: Build Theos Tweak DEB with Artifact
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Actions sekmesinden manuel başlatmak için
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Theos environment
+        uses: Randomblock1/theos-action@v1
+        with:
+          theos-dir: theos
+          theos-ref: master
+          sdks-ref: master
+          orion: false  # Bu tweak Swift içermiyor
+          cache-theos: true
+          cache-sdks: true
+
+      - name: Build the DEB package
+        working-directory: ./Tweak  # Repo'da build Tweak klasöründe oluyor
+        run: |
+          make clean
+          make package FINALPACKAGE=1
+          ls -la packages/  # Log için paketleri göster (debug)
+
+      - name: Upload DEB as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS_UEDumper_DEB
+          path: Tweak/packages/*.deb  # .deb dosyalarını buradan yakala
+          if-no-files-found: error     # Dosya yoksa hata versin
+          retention-days: 7            # Artifact'ı 7 gün tut (default 90, kısaltabilirsin)
+
+      - name: Upload logs for debugging (optional)
+        if: always()  # Hata olsa bile log yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: Tweak/*.log  # Varsa log dosyaları
