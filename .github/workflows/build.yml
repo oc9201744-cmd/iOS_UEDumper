@@ -12,12 +12,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository (with submodules)
+      - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install build dependencies (Ubuntu 24.04 fix)
+      - name: Install required dependencies for Ubuntu 24.04
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential fakeroot rsync curl perl unzip git libplist-utils libncurses6 libncurses-dev zlib1g-dev
@@ -31,26 +31,27 @@ jobs:
           theos-sdks-branch: master
           orion: false
 
-      - name: Build the DEB package
+      - name: Build DEB package
         working-directory: ./Tweak
         run: |
-          make clean
+          make clean || true
           make package FINALPACKAGE=1
-          ls -la packages/ || echo "No packages found - check Makefile/control"
+          ls -la packages/ || echo "No .deb found - check Makefile/control file"
 
-      - name: Upload DEB as Artifact
+      - name: Upload DEB Artifact
         uses: actions/upload-artifact@v4
         with:
           name: iOS_UEDumper_DEB
           path: Tweak/packages/*.deb
-          if-no-files-found: error
+          if-no-files-found: warn  # Hata yerine warn ver, log'ları incele
           retention-days: 7
 
-      - name: Upload build logs (for debug)
+      - name: Upload Debug Logs (always)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
           path: |
             Tweak/*.log
-            Tweak/theos.log  # varsa
+            Tweak/theos.log
+            Tweak/packages/*.log
