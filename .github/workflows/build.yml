@@ -27,6 +27,9 @@ jobs:
           export THEOS=~/theos
           rm -rf $THEOS
           git clone --recursive https://github.com/theos/theos.git $THEOS
+          # ldid'yi sistem geneline kopyalayarak 'command not found' hatasını bitiriyoruz
+          sudo cp $THEOS/bin/ldid /usr/local/bin/ldid
+          sudo chmod +x /usr/local/bin/ldid
           echo "THEOS=$THEOS" >> $GITHUB_ENV
           echo "$THEOS/bin" >> $GITHUB_PATH
 
@@ -39,16 +42,14 @@ jobs:
 
       - name: Patch KittyMemory & Build
         run: |
-          # ldid yolunu sisteme tanıtıyoruz
-          export PATH=$THEOS/bin:$PATH
-          
           # KittyMemory hata düzeltmesi
           sed -i '' 's/MemoryPatch::createWithBytes(fileName, /MemoryPatch::createWithBytes(/g' deps/KittyMemory/KittyMemory/writeData.hpp
           
           cd Tweak
           make clean
-          # ldid'yi Theos içinden kullanması için zorluyoruz
-          make package FINALPACKAGE=1 THEOS_DEVICE_IP=
+          
+          # Derleme sırasında ldid yolunu ve diğer parametreleri garantiye alıyoruz
+          make package FINALPACKAGE=1 LDID=/usr/local/bin/ldid THEOS_DEVICE_IP=
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -57,3 +58,4 @@ jobs:
           path: |
             Tweak/packages/*.deb
             Tweak/.theos/obj/*.dylib
+            Tweak/.theos/obj/debug/*.dylib
