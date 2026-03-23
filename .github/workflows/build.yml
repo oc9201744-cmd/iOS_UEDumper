@@ -5,30 +5,42 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:  # Manuel tetikleme için
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-latest  # macOS runner kullanıyoruz (Xcode ve toolchain hazır)
+    runs-on: macos-latest
 
     steps:
-      - name: Checkout repository (submodules dahil)
+      - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Theos ortamını kur (macOS uyumlu)
+      - name: Install Theos dependencies (macOS zaten hazır ama emin olalım)
+        run: |
+          brew install ldid make libplist || true  # zaten varsa hata verme
+
+      - name: Theos'u kur (action ile)
         uses: Randomblock1/theos-action@v1
         with:
           theos-dir: theos
           theos-src: https://github.com/theos/theos
-          theos-sdks: https://github.com/theos/sdks
-          theos-sdks-branch: master
-          orion: false  # Swift yok, false bırak
+          orion: false
+
+      - name: SDK'leri manuel indir ve extract et (action hatasını bypass)
+        run: |
+          cd theos
+          curl -LO https://github.com/theos/sdks/archive/refs/heads/master.zip
+          unzip master.zip -d sdks_temp
+          mv sdks_temp/sdks-master/* sdks/ || mv sdks_temp/* sdks/  # extracted folder sdks-master olabilir
+          rm -rf sdks_temp master.zip
+          ls -la sdks/  # debug: SDK'ler var mı bak
 
       - name: DEB paketini build et
         working-directory: ./Tweak
         run: |
+          export THEOS=../theos  # Theos path'i set et
           make clean || true
           make package FINALPACKAGE=1
           ls -la packages/ || echo "packages klasöründe .deb yok - Makefile/control kontrol et"
@@ -48,5 +60,5 @@ jobs:
           name: build-debug-logs-macOS
           path: |
             Tweak/*.log
-            Tweak/theos.log
+            theos/*.log
             Tweak/packages/*.log
