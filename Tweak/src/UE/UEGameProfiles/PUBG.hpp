@@ -25,7 +25,7 @@ public:
     bool IsUsingFNamePool() const override { return false; }
     bool isUsingOutlineNumberName() const override { return false; }
 
-    // ===== GUObjectArray (FIXED) =====
+    // ===== GUObjectArray =====
     uintptr_t GetGUObjectArrayPtr() const override
     {
         std::string pattern = "80 B9 ? ? ? ? ? ? ? 91 ? ? 40 F9 ? 03 80 52";
@@ -34,16 +34,15 @@ public:
         uintptr_t ins = KittyScanner::findIdaPatternFirst(text.start, text.end, pattern);
         if (!ins) return 0;
 
-        uintptr_t adrp = Arm64::DecodeADRP(ins);
-        uintptr_t add  = Arm64::DecodeADD(ins + 4);
-        uintptr_t addr = adrp + add;
+        // senin kütüphaneye uygun çözüm
+        uintptr_t addr = Arm64::DecodeADRL(ins, 0);
 
         if (!addr) return 0;
 
         return vm_rpm_ptr<uintptr_t>((void*)addr);
     }
 
-    // ===== GNames (FIXED) =====
+    // ===== GNames =====
     uintptr_t GetNamesPtr() const override
     {
         std::string pattern = "ff c3 01 91 c0 03 5f d6 ? ? ? ? ? ? ? 91 ? ? ? 94 ? ? ? 34";
@@ -52,9 +51,7 @@ public:
         uintptr_t ins = KittyScanner::findIdaPatternFirst(text.start, text.end, pattern);
         if (!ins) return 0;
 
-        uintptr_t adrp = Arm64::DecodeADRP(ins + 0x1c);
-        uintptr_t add  = Arm64::DecodeADD(ins + 0x1c + 4);
-        uintptr_t addr = adrp + add;
+        uintptr_t addr = Arm64::DecodeADRL(ins, 0x1c);
 
         if (!addr) return 0;
 
