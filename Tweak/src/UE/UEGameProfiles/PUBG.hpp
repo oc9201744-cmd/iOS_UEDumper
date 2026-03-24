@@ -1,37 +1,15 @@
 #pragma once
 
 #include "../UEGameProfile.hpp"
-#include <mach-o/dyld.h>
 #include <cstring>
 
 using namespace UEMemory;
 
 class PUBGProfile : public IGameProfile
 {
-private:
-    static uintptr_t GetImageBase()
-    {
-        static uintptr_t base = 0;
-        if (!base)
-        {
-            const struct mach_header_64* header =
-                (const struct mach_header_64*)_dyld_get_image_header(0);
-
-            uintptr_t slide = _dyld_get_image_vmaddr_slide(0);
-            base = (uintptr_t)header + slide;
-        }
-        return base;
-    }
-
-    static constexpr uintptr_t NORMALIZE(uintptr_t addr)
-    {
-        return addr - 0x100000000;
-    }
-
 public:
     PUBGProfile() = default;
 
-    // ===== PURE VIRTUAL FIX =====
     std::string GetAppName() const override { return "PUBG"; }
 
     std::vector<std::string> GetAppIDs() const override
@@ -46,28 +24,27 @@ public:
     }
 
     bool isUsingCasePreservingName() const override { return false; }
-    bool IsUsingFNamePool() const override { return false; }
+    bool IsUsingFNamePool() const override { return true; } // düzeltildi
     bool isUsingOutlineNumberName() const override { return false; }
 
-    // ===== OFFSETS =====
+    // ===== DOĞRUDAN RUNTIME ADRESLER (BASE EKLEME YOK) =====
     static constexpr uintptr_t GUOBJECTARRAY = 0x10A34E980;
     static constexpr uintptr_t NAMES         = 0x10F63ACA0;
     static constexpr uintptr_t GENGINE       = 0x10A565BF0;
 
     uintptr_t GetGUObjectArrayPtr() const override
     {
-        return GetImageBase() + NORMALIZE(GUOBJECTARRAY);
+        return GUOBJECTARRAY;
     }
 
     uintptr_t GetNamesPtr() const override
     {
-        return GetImageBase() + NORMALIZE(NAMES);
+        return NAMES;
     }
 
     uintptr_t GetGEnginePtr() const
     {
-        uintptr_t addr = GetImageBase() + NORMALIZE(GENGINE);
-        return vm_rpm_ptr<uintptr_t>((void*)addr);
+        return vm_rpm_ptr<uintptr_t>((void*)GENGINE);
     }
 
     uintptr_t GetGWorldPtr() const
@@ -91,28 +68,28 @@ public:
         {
             once = true;
 
-            // ===== UObject FIX =====
+            // UObject
             offsets.UObject.ObjectFlags = 0x8;
             offsets.UObject.InternalIndex = 0xC;
             offsets.UObject.ClassPrivate = 0x10;
             offsets.UObject.NamePrivate = 0x18;
             offsets.UObject.OuterPrivate = 0x20;
 
-            // ===== FName =====
-            offsets.FNameEntry.Index = sizeof(void *);
-            offsets.FNameEntry.Name  = sizeof(void *) + sizeof(int32_t);
+            // FName (pool)
+            offsets.FNameEntry.Index = 0;
+            offsets.FNameEntry.Name  = 0x4;
 
-            // ===== Struct =====
+            // Struct
             offsets.UStruct.SuperStruct = 0x30;
             offsets.UStruct.Children = 0x38;
             offsets.UStruct.PropertiesSize = 0x40;
 
-            // ===== Function =====
+            // Function
             offsets.UFunction.Func = 0xB0;
             offsets.UFunction.NumParams = 0x8C;
             offsets.UFunction.ParamSize = 0x8E;
 
-            // ===== Property =====
+            // Property
             offsets.UProperty.ArrayDim = 0x30;
             offsets.UProperty.ElementSize = 0x34;
             offsets.UProperty.PropertyFlags = 0x38;
