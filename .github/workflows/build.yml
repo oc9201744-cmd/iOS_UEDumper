@@ -1,64 +1,124 @@
-name: iOS UEDumper Build
+#pragma once
 
-on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
+#include "../UEGameProfile.hpp"
+#include <mach-o/dyld.h>
+#include <cstring>
 
-jobs:
-  build:
-    runs-on: macos-latest
+using namespace UEMemory;
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+class PUBGProfile : public IGameProfile
+{
+private:
+    static uintptr_t GetImageBase()
+    {
+        static uintptr_t base = 0;
+        if (!base)
+        {
+            const struct mach_header_64* header =
+                (const struct mach_header_64*)_dyld_get_image_header(0);
 
-      - name: Set up Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
+            uintptr_t slide = _dyld_get_image_vmaddr_slide(0);
+            base = (uintptr_t)header + slide;
+        }
+        return base;
+    }
 
-      - name: Install ldid
-        run: |
-          brew install ldid
-          # ldid'nin nerede olduğunu sisteme tanıtıyoruz
-          echo "LDID_PATH=$(which ldid)" >> $GITHUB_ENV
+    static constexpr uintptr_t NORMALIZE(uintptr_t addr)
+    {
+        return addr - 0x100000000;
+    }
 
-      - name: Setup Theos
-        run: |
-          export THEOS=~/theos
-          rm -rf $THEOS
-          git clone --recursive https://github.com/theos/theos.git $THEOS
-          echo "THEOS=$THEOS" >> $GITHUB_ENV
-          echo "$THEOS/bin" >> $GITHUB_PATH
+public:
+    PUBGProfile() = default;
 
-      - name: Install iOS SDK
-        run: |
-          mkdir -p $THEOS/sdks
-          git clone --depth 1 https://github.com/theos/sdks.git $THEOS/sdks/tmp_sdks
-          mv $THEOS/sdks/tmp_sdks/*.sdk $THEOS/sdks/
-          rm -rf $THEOS/sdks/tmp_sdks
+    // ===== PURE VIRTUAL FIX =====
+    std::string GetAppName() const override { return "PUBG"; }
 
-      - name: Patch KittyMemory & Build
-        run: |
-          # KittyMemory hata düzeltmesi
-          sed -i '' 's/MemoryPatch::createWithBytes(fileName, /MemoryPatch::createWithBytes(/g' deps/KittyMemory/KittyMemory/writeData.hpp
-          
-          cd Tweak
-          make clean
-          
-          # Derleme sırasında ldid yolunu env'den alıp veriyoruz
-          make package FINALPACKAGE=1 LDID=$LDID_PATH THEOS_DEVICE_IP=
-          
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: iOS-UEDumper-Build
-          path: |
-            Tweak/packages/*.deb
-            Tweak/.theos/obj/*.dylib
-            Tweak/.theos/obj/debug/*.dylib
+    std::vector<std::string> GetAppIDs() const override
+    {
+        return {
+            "com.tencent.ig",
+            "com.rekoo.pubgm",
+            "com.pubg.imobile",
+            "com.pubg.krmobile",
+            "com.vng.pubgmobile",
+        };
+    }
+
+    bool isUsingCasePreservingName() const override { return false; }
+    bool IsUsingFNamePool() const override { return false; }
+    bool isUsingOutlineNumberName() const override { return false; }
+
+    // ===== OFFSETS =====
+    static constexpr uintptr_t GUOBJECTARRAY = 0x10A34E980;
+    static constexpr uintptr_t NAMES         = 0x10F63ACA0;
+    static constexpr uintptr_t GENGINE       = 0x10A565BF0;
+
+    uintptr_t GetGUObjectArrayPtr() const override
+    {
+        return GetImageBase() + NORMALIZE(GUOBJECTARRAY);
+    }
+
+    uintptr_t GetNamesPtr() const override
+    {
+        return GetImageBase() + NORMALIZE(NAMES);
+    }
+
+    uintptr_t GetGEnginePtr() const
+    {
+        uintptr_t addr = GetImageBase() + NORMALIZE(GENGINE);
+        return vm_rpm_ptr<uintptr_t>((void*)addr);
+    }
+
+    uintptr_t GetGWorldPtr() const
+    {
+        uintptr_t GEngine = GetGEnginePtr();
+        if (!GEngine) return 0;
+
+        uintptr_t GameViewport =
+            vm_rpm_ptr<uintptr_t>((void*)(GEngine + 0x30));
+        if (!GameViewport) return 0;
+
+        return vm_rpm_ptr<uintptr_t>((void*)(GameViewport + 0x30));
+    }
+
+    UE_Offsets *GetOffsets() const override
+    {
+        static UE_Offsets offsets;
+
+        static bool once = false;
+        if (!once)
+        {
+            once = true;
+
+            // ===== UObject FIX =====
+            offsets.UObject.ObjectFlags = 0x8;
+            offsets.UObject.InternalIndex = 0xC;
+            offsets.UObject.ClassPrivate = 0x10;
+            offsets.UObject.NamePrivate = 0x18;
+            offsets.UObject.OuterPrivate = 0x20;
+
+            // ===== FName =====
+            offsets.FNameEntry.Index = sizeof(void *);
+            offsets.FNameEntry.Name  = sizeof(void *) + sizeof(int32_t);
+
+            // ===== Struct =====
+            offsets.UStruct.SuperStruct = 0x30;
+            offsets.UStruct.Children = 0x38;
+            offsets.UStruct.PropertiesSize = 0x40;
+
+            // ===== Function =====
+            offsets.UFunction.Func = 0xB0;
+            offsets.UFunction.NumParams = 0x8C;
+            offsets.UFunction.ParamSize = 0x8E;
+
+            // ===== Property =====
+            offsets.UProperty.ArrayDim = 0x30;
+            offsets.UProperty.ElementSize = 0x34;
+            offsets.UProperty.PropertyFlags = 0x38;
+            offsets.UProperty.Offset_Internal = 0x44;
+        }
+
+        return &offsets;
+    }
+};
