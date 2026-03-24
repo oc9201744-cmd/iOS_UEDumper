@@ -32,17 +32,21 @@ public:
     static constexpr uintptr_t NAMES         = 0x10A1178B0;
     static constexpr uintptr_t GWORLD        = 0x10A566E00;
 
-    // ===== DOĞRU: POINTER OKUMA =====
+    // ===== DOĞRU POINTER KULLANIMI =====
+
+    // GUObjectArray = DATA (direkt kullan)
     uintptr_t GetGUObjectArrayPtr() const override
     {
-        return vm_rpm_ptr<uintptr_t>((void*)GUOBJECTARRAY);
+        return GUOBJECTARRAY;
     }
 
+    // GNames = DATA (direkt kullan)
     uintptr_t GetNamesPtr() const override
     {
-        return vm_rpm_ptr<uintptr_t>((void*)NAMES);
+        return NAMES;
     }
 
+    // GWorld = POINTER (dereference gerekir)
     uintptr_t GetGWorldPtr() const
     {
         return vm_rpm_ptr<uintptr_t>((void*)GWORLD);
