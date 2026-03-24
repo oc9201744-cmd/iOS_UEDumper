@@ -1,30 +1,71 @@
-// ===== GUObjectArray =====
-uintptr_t GetGUObjectArrayPtr() const override
-{
-    uintptr_t base = GetExecutableInfo().baseAddress;  // ShadowTrackerExtra base (ASLR slide dahil)
-    uintptr_t offset = 0x10A34E980;
-    return base + offset;
-    // veya vm_rpm_ptr<uintptr_t>((void*)(base + offset)); eğer ekstra read lazım
-}
+// src/UE/UEGameProfiles/PUBG.hpp
+#pragma once
 
-// ===== GNames =====
-uintptr_t GetNamesPtr() const override
-{
-    uintptr_t base = GetExecutableInfo().baseAddress;
-    uintptr_t offset = 0x10a1178b0;  // GNameData
-    return base + offset;
-    // Eğer GNameFunc lazım olursa:
-    // uintptr_t gname_func = base + 0x104bd8740;
-    // Ama genelde GNameData direkt pointer yeterli
-}
+#include "../UEGameProfile.hpp"  // IGameProfile ve UEMemory include'ları buradan gelsin
+#include <string>
+#include <vector>
 
-// Ekstra: GWorld için (eğer ihtiyacın olursa)
-uintptr_t GetGWorldPtr() const override
-{
-    uintptr_t base = GetExecutableInfo().baseAddress;
-    uintptr_t gworld_func_offset = 0x102A62208;
-    uintptr_t gworld_data_offset = 0x10A566E00;
+using namespace UEMemory;
 
-    // Genelde GWorldFunction çağrılıp data okunur, veya direkt data pointer
-    return base + gworld_data_offset;
-}
+class PUBGProfile : public IGameProfile
+{
+public:
+    PUBGProfile() = default;
+
+    std::string GetAppName() const override { return "PUBG"; }
+
+    std::vector<std::string> GetAppIDs() const override
+    {
+        return {
+            "com.tencent.ig",
+            "com.rekoo.pubgm",
+            "com.pubg.imobile",
+            "com.pubg.krmobile",
+            "com.vng.pubgmobile",
+        };
+    }
+
+    bool isUsingCasePreservingName() const override { return false; }
+    bool IsUsingFNamePool() const override { return false; }
+    bool isUsingOutlineNumberName() const override { return false; }
+
+    // ===== GUObjectArray =====
+    uintptr_t GetGUObjectArrayPtr() const override
+    {
+        uintptr_t base = GetExecutableInfo().baseAddress;  // Bu fonksiyon UEMemory'den gelmeli
+        uintptr_t offset = 0x10A34E980;
+        return base + offset;
+    }
+
+    // ===== GNames =====
+    uintptr_t GetNamesPtr() const override
+    {
+        uintptr_t base = GetExecutableInfo().baseAddress;
+        uintptr_t offset = 0x10a1178b0;  // GNameData
+        return base + offset;
+    }
+
+    // ===== GWorld (ekstra) =====
+    uintptr_t GetGWorldPtr() const override
+    {
+        uintptr_t base = GetExecutableInfo().baseAddress;
+        uintptr_t gworld_data_offset = 0x10A566E00;
+        return base + gworld_data_offset;
+        // Veya GWorldFunc'u kullanmak istersen: base + 0x102A62208
+    }
+
+    UE_Offsets *GetOffsets() const override
+    {
+        static UE_Offsets offsets = UE_DefaultOffsets::UE4_18_19(isUsingCasePreservingName());
+
+        static bool once = false;
+        if (!once)
+        {
+            once = true;
+            offsets.FNameEntry.Index = sizeof(void *);
+            offsets.FNameEntry.Name  = sizeof(void *) + sizeof(int32_t);
+        }
+
+        return &offsets;
+    }
+};
