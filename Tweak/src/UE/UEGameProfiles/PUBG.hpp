@@ -27,26 +27,21 @@ public:
     bool IsUsingFNamePool() const override { return false; }
     bool isUsingOutlineNumberName() const override { return false; }
 
-    // ===== SENİN ADRESLER =====
-    static constexpr uintptr_t GUOBJECTARRAY = 0x10A34E980;
-    static constexpr uintptr_t NAMES         = 0x10A1178B0;
-    static constexpr uintptr_t GWORLD        = 0x10A566E00;
+    // ===== SADECE DOĞRU OLANI KULLAN =====
+    static constexpr uintptr_t GWORLD = 0x10A566E00;
+    static constexpr uintptr_t NAMES  = 0x10A1178B0;
 
-    // ===== DOĞRU POINTER KULLANIMI =====
-
-    // GUObjectArray = DATA (direkt kullan)
+    // ❌ GUObjectArray devre dışı
     uintptr_t GetGUObjectArrayPtr() const override
     {
-        return GUOBJECTARRAY;
+        return 0;
     }
 
-    // GNames = DATA (direkt kullan)
     uintptr_t GetNamesPtr() const override
     {
         return NAMES;
     }
 
-    // GWorld = POINTER (dereference gerekir)
     uintptr_t GetGWorldPtr() const
     {
         return vm_rpm_ptr<uintptr_t>((void*)GWORLD);
