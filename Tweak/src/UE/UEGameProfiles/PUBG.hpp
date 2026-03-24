@@ -23,24 +23,24 @@ public:
         };
     }
 
-    // ===== DOĞRU AYAR =====
     bool isUsingCasePreservingName() const override { return false; }
-    bool IsUsingFNamePool() const override { return false; } // GNames sistemi
+    bool IsUsingFNamePool() const override { return false; }
     bool isUsingOutlineNumberName() const override { return false; }
 
-    // ===== SENİN VERDİĞİN DOĞRU ADRESLER =====
+    // ===== SENİN ADRESLER =====
     static constexpr uintptr_t GUOBJECTARRAY = 0x10A34E980;
     static constexpr uintptr_t NAMES         = 0x10A1178B0;
     static constexpr uintptr_t GWORLD        = 0x10A566E00;
 
+    // ===== DOĞRU: POINTER OKUMA =====
     uintptr_t GetGUObjectArrayPtr() const override
     {
-        return GUOBJECTARRAY;
+        return vm_rpm_ptr<uintptr_t>((void*)GUOBJECTARRAY);
     }
 
     uintptr_t GetNamesPtr() const override
     {
-        return NAMES;
+        return vm_rpm_ptr<uintptr_t>((void*)NAMES);
     }
 
     uintptr_t GetGWorldPtr() const
@@ -57,28 +57,23 @@ public:
         {
             once = true;
 
-            // UObject
             offsets.UObject.ObjectFlags = 0x8;
             offsets.UObject.InternalIndex = 0xC;
             offsets.UObject.ClassPrivate = 0x10;
             offsets.UObject.NamePrivate = 0x18;
             offsets.UObject.OuterPrivate = 0x20;
 
-            // GNames sistemi
             offsets.FNameEntry.Index = sizeof(void *);
             offsets.FNameEntry.Name  = sizeof(void *) + sizeof(int32_t);
 
-            // Struct
             offsets.UStruct.SuperStruct = 0x30;
             offsets.UStruct.Children = 0x38;
             offsets.UStruct.PropertiesSize = 0x40;
 
-            // Function
             offsets.UFunction.Func = 0xB0;
             offsets.UFunction.NumParams = 0x8C;
             offsets.UFunction.ParamSize = 0x8E;
 
-            // Property
             offsets.UProperty.ArrayDim = 0x30;
             offsets.UProperty.ElementSize = 0x34;
             offsets.UProperty.PropertyFlags = 0x38;
