@@ -26,7 +26,7 @@ public:
 
     #pragma once
 
-#include "GameProfile.hpp"
+#include "UEGameProfile.hpp"
 
 
 
