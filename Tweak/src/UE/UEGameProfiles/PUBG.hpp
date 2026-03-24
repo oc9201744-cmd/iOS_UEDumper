@@ -23,14 +23,15 @@ public:
         };
     }
 
+    // ===== DOĞRU AYAR =====
     bool isUsingCasePreservingName() const override { return false; }
-    bool IsUsingFNamePool() const override { return true; } // düzeltildi
+    bool IsUsingFNamePool() const override { return false; } // GNames sistemi
     bool isUsingOutlineNumberName() const override { return false; }
 
-    // ===== DOĞRUDAN RUNTIME ADRESLER (BASE EKLEME YOK) =====
+    // ===== SENİN VERDİĞİN DOĞRU ADRESLER =====
     static constexpr uintptr_t GUOBJECTARRAY = 0x10A34E980;
-    static constexpr uintptr_t NAMES         = 0x10F63ACA0;
-    static constexpr uintptr_t GENGINE       = 0x10A565BF0;
+    static constexpr uintptr_t NAMES         = 0x10A1178B0;
+    static constexpr uintptr_t GWORLD        = 0x10A566E00;
 
     uintptr_t GetGUObjectArrayPtr() const override
     {
@@ -42,21 +43,9 @@ public:
         return NAMES;
     }
 
-    uintptr_t GetGEnginePtr() const
-    {
-        return vm_rpm_ptr<uintptr_t>((void*)GENGINE);
-    }
-
     uintptr_t GetGWorldPtr() const
     {
-        uintptr_t GEngine = GetGEnginePtr();
-        if (!GEngine) return 0;
-
-        uintptr_t GameViewport =
-            vm_rpm_ptr<uintptr_t>((void*)(GEngine + 0x30));
-        if (!GameViewport) return 0;
-
-        return vm_rpm_ptr<uintptr_t>((void*)(GameViewport + 0x30));
+        return vm_rpm_ptr<uintptr_t>((void*)GWORLD);
     }
 
     UE_Offsets *GetOffsets() const override
@@ -75,9 +64,9 @@ public:
             offsets.UObject.NamePrivate = 0x18;
             offsets.UObject.OuterPrivate = 0x20;
 
-            // FName (pool)
-            offsets.FNameEntry.Index = 0;
-            offsets.FNameEntry.Name  = 0x4;
+            // GNames sistemi
+            offsets.FNameEntry.Index = sizeof(void *);
+            offsets.FNameEntry.Name  = sizeof(void *) + sizeof(int32_t);
 
             // Struct
             offsets.UStruct.SuperStruct = 0x30;
