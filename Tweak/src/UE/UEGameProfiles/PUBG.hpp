@@ -48,10 +48,16 @@ public:
     {
         uintptr_t base = GetExecutableInfo().address;
         
-        uintptr_t func = base + 0x4BD8740;
-        uintptr_t data = base + 0xA1178B0;
+        // gName() fonksiyonu çağrılıyor, resolved GNames adresi alınıyor
+        uintptr_t resolved = reinterpret_cast<uintptr_t(*)(uintptr_t)>(
+            base + 0x4BD8740
+        )(base + 0xA1178B0);
         
-        return reinterpret_cast<uintptr_t(*)(uintptr_t)>(func)(data);
+        // Dumper bu adresten bir kez daha okuyacak (vm_rpm_ptr)
+        // O yüzden resolved adresi statik bir yere yazıp pointer'ını döndürüyoruz
+        static uintptr_t gNamesResolved = 0;
+        gNamesResolved = resolved;
+        return reinterpret_cast<uintptr_t>(&gNamesResolved);
     }
 
     UE_Offsets *GetOffsets() const override
