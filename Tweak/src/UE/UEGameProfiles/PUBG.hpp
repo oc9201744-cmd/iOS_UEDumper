@@ -46,7 +46,12 @@ public:
 
     uintptr_t GetNamesPtr() const override
     {
-        return GetExecutableInfo().address + 0x4BD8740;
+        uintptr_t base = GetExecutableInfo().address;
+        
+        uintptr_t func = base + 0x4BD8740;
+        uintptr_t data = base + 0xA1178B0;
+        
+        return reinterpret_cast<uintptr_t(*)(uintptr_t)>(func)(data);
     }
 
     UE_Offsets *GetOffsets() const override
