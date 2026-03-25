@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../UEGameProfile.hpp"
+#include <mach-o/dyld.h>
 using namespace UEMemory;
 
 class PUBGProfile : public IGameProfile
@@ -41,20 +42,19 @@ public:
 
     uintptr_t GetGUObjectArrayPtr() const override
     {
-        return GetExecutableInfo().address + 0xA34E980;
+        uintptr_t slide = (uintptr_t)_dyld_get_image_vmaddr_slide(0);
+        return 0x10A34E980 + slide;
     }
 
     uintptr_t GetNamesPtr() const override
     {
-        uintptr_t base = GetExecutableInfo().address;
-        
-        // gName() fonksiyonu çağrılıyor, resolved GNames adresi alınıyor
-        uintptr_t resolved = reinterpret_cast<uintptr_t(*)(uintptr_t)>(
-            base + 0x4BD8740
-        )(base + 0xA1178B0);
-        
-        // Dumper bu adresten bir kez daha okuyacak (vm_rpm_ptr)
-        // O yüzden resolved adresi statik bir yere yazıp pointer'ını döndürüyoruz
+        uintptr_t slide = (uintptr_t)_dyld_get_image_vmaddr_slide(0);
+
+        uintptr_t func = 0x104BD8740 + slide;
+        uintptr_t data = 0x10A1178B0 + slide;
+
+        uintptr_t resolved = reinterpret_cast<uintptr_t(*)(uintptr_t)>(func)(data);
+
         static uintptr_t gNamesResolved = 0;
         gNamesResolved = resolved;
         return reinterpret_cast<uintptr_t>(&gNamesResolved);
