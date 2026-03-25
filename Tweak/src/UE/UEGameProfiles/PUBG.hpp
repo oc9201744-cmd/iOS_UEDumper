@@ -46,7 +46,14 @@ public:
 
     uintptr_t GetNamesPtr() const override
     {
-        return GetExecutableInfo().address + 0xA1178B0;
+        uintptr_t base = GetExecutableInfo().address;
+        uintptr_t ptr = base + 0xA1178B0;
+        
+        uintptr_t result = vm_rpm_ptr<uintptr_t>((void *)ptr);
+        if (result == 0)
+            return ptr;
+            
+        return result;
     }
 
     UE_Offsets *GetOffsets() const override
