@@ -41,12 +41,12 @@ public:
 
     uintptr_t GetGUObjectArrayPtr() const override
     {
-        return GetExecutableInfo().getBaseAddress() + 0xA34E980;
+        return GetExecutableInfo().address + 0xA34E980;
     }
 
     uintptr_t GetNamesPtr() const override
     {
-        return GetExecutableInfo().getBaseAddress() + 0xA1178B0;
+        return GetExecutableInfo().address + 0xA1178B0;
     }
 
     UE_Offsets *GetOffsets() const override
